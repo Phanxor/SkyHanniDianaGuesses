@@ -69,6 +69,12 @@ object GriffinBurrowHelper {
 
     private var testList = listOf<LorenzVec>()
     private var testGriffinSpots = false
+    private var previousBurrowGuesses
+        get() = SkyHanniMod.feature.storage?.previousBurrowGuesses
+        set(value) {
+            SkyHanniMod.feature.storage?.previousBurrowGuesses = value
+        }
+    private var lastGuessTime = SimpleTimeMark.farPast()
 
     @SubscribeEvent
     fun onDebugDataCollect(event: DebugDataCollectEvent) {
@@ -129,6 +135,7 @@ object GriffinBurrowHelper {
         shouldFocusOnInquis = config.inquisitorSharing.focusInquisitor && locations.isNotEmpty()
         if (!shouldFocusOnInquis) {
             locations.addAll(particleBurrows.keys.toMutableList())
+            if (previousBurrowGuesses != null) locations.addAll(previousBurrowGuesses!!.toMutableList())
             guessLocation?.let {
                 locations.add(findBlock(it))
             }
@@ -146,8 +153,17 @@ object GriffinBurrowHelper {
     @SubscribeEvent
     fun onBurrowGuess(event: BurrowGuessEvent) {
         EntityMovementData.addToTrack(Minecraft.getMinecraft().thePlayer)
+        if (lastGuessTime.passedSince() >= 2.seconds && guessLocation != null && SkyHanniMod.feature.storage != null && (!SkyHanniMod.feature.storage?.inBurrowChain!! || SkyHanniMod.feature.storage?.storeNextGuess!!)) { // If not in a chain, the guess could point to a different burrow.
+            val guessBlock = findBlock(guessLocation!!)
+            //if (!previousBurrowGuesses?.any { it == guessBlock }) {
+            if (previousBurrowGuesses != null && !previousBurrowGuesses!!.contains(guessBlock)) {
+                previousBurrowGuesses = previousBurrowGuesses?.editCopy { add(guessBlock) }
+            }
 
+            SkyHanniMod.feature.storage?.storeNextGuess = false
+        }
         guessLocation = event.guessLocation
+        lastGuessTime = SimpleTimeMark.now()
         update()
     }
 
@@ -165,12 +181,19 @@ object GriffinBurrowHelper {
                 guessLocation = null
             }
         }
+        if (previousBurrowGuesses == null) return
+        for (oldGuess in previousBurrowGuesses!!) {
+            if (particleBurrows.any { oldGuess.distance(it.key) < 40 }) {
+                previousBurrowGuesses!!.remove(oldGuess)
+            }
+        }
     }
 
     @SubscribeEvent
     fun onBurrowDug(event: BurrowDugEvent) {
         val location = event.burrowLocation
         particleBurrows = particleBurrows.editCopy { remove(location) }
+        SkyHanniMod.feature.storage?.storeNextGuess = true
         update()
     }
 
@@ -196,6 +219,9 @@ object GriffinBurrowHelper {
     }
 
     private fun resetAllData() {
+        SkyHanniMod.feature.storage.storeNextGuess = false
+        SkyHanniMod.feature.storage.inBurrowChain = false
+        previousBurrowGuesses = emptyList()
         guessLocation = null
         targetLocation = null
         particleBurrows = emptyMap()
@@ -316,6 +342,14 @@ object GriffinBurrowHelper {
 
         if (InquisitorWaypointShare.waypoints.isNotEmpty() && config.inquisitorSharing.focusInquisitor) {
             return
+        }
+
+        if (previousBurrowGuesses != null) {
+            for (oldGuess in previousBurrowGuesses!!) {
+                val distance = oldGuess.distance(playerLocation)
+                event.drawColor(oldGuess, LorenzColor.GRAY, distance > 10)
+                event.drawDynamicText(oldGuess.add(y = 1), "§7Old guess", 1.5)
+            }
         }
 
         if (config.burrowsNearbyDetection) {

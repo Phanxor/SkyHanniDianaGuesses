@@ -43,6 +43,15 @@ public class Storage {
     public List<LorenzVec> foundDianaBurrowLocations = new ArrayList<>();
 
     @Expose
+    public List<LorenzVec> previousBurrowGuesses = new ArrayList<>();
+
+    @Expose
+    public boolean inBurrowChain = false;
+
+    @Expose
+    public boolean storeNextGuess = false;
+
+    @Expose
     public Map<UUID, PlayerSpecificStorage> players = new HashMap<>();
 
     @Expose

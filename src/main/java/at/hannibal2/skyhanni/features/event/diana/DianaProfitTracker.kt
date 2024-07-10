@@ -111,6 +111,7 @@ object DianaProfitTracker {
     fun onChat(event: LorenzChatEvent) {
         val message = event.message
         if (chatDugOutPattern.matches(message)) {
+            SkyHanniMod.feature.storage.inBurrowChain = false
             BurrowAPI.lastBurrowRelatedChatMessage = SimpleTimeMark.now()
             tracker.modify {
                 it.burrowsDug++
