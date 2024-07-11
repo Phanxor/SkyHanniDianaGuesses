@@ -35,6 +35,11 @@ object GriffinBurrowParticleFinder {
 
     // This exists to detect the unlucky timing when the user opens a burrow before it gets fully detected
     private var fakeBurrow: LorenzVec? = null
+    private var previousBurrowGuesses
+        get() = SkyHanniMod.feature.storage?.previousBurrowGuesses
+        set(value) {
+            SkyHanniMod.feature.storage?.previousBurrowGuesses = value
+        }
 
     @SubscribeEvent
     fun onDebugDataCollect(event: DebugDataCollectEvent) {
@@ -172,7 +177,12 @@ object GriffinBurrowParticleFinder {
 
         val location = event.position
         if (event.itemInHand?.isDianaSpade != true || location.getBlockAt() !== Blocks.grass) return
-
+        if (previousBurrowGuesses == null) return
+        for (oldGuess in previousBurrowGuesses!!) {
+            if (location.distance(oldGuess) < 30 ) {
+                previousBurrowGuesses!!.remove(oldGuess)
+            }
+        }
         if (location == fakeBurrow) {
             fakeBurrow = null
             // This exists to detect the unlucky timing when the user opens a burrow before it gets fully detected
