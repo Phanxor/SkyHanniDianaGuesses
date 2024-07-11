@@ -11,12 +11,15 @@ import at.hannibal2.skyhanni.utils.ChatUtils
 import at.hannibal2.skyhanni.utils.CollectionUtils.sorted
 import at.hannibal2.skyhanni.utils.HypixelCommands
 import at.hannibal2.skyhanni.utils.LocationUtils
+import at.hannibal2.skyhanni.utils.LocationUtils.distanceToPlayer
 import at.hannibal2.skyhanni.utils.LorenzUtils
 import at.hannibal2.skyhanni.utils.LorenzUtils.round
 import at.hannibal2.skyhanni.utils.LorenzVec
 import at.hannibal2.skyhanni.utils.SimpleTimeMark
+import at.hannibal2.skyhanni.utils.getLorenzVec
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import org.lwjgl.input.Keyboard
 import kotlin.time.Duration.Companion.seconds
 
 @SkyHanniModule
@@ -28,12 +31,18 @@ object BurrowWarpHelper {
 
     private var lastWarpTime = SimpleTimeMark.farPast()
     private var lastWarp: WarpPoint? = null
-
-    @SubscribeEvent
+    private var previousBurrowGuesses
+        get() = SkyHanniMod.feature.storage?.previousBurrowGuesses
+        set(value) {
+            SkyHanniMod.feature.storage?.previousBurrowGuesses = value
+        }
     fun onKeyClick(event: LorenzKeyPressEvent) {
         if (!DianaAPI.isDoingDiana()) return
+        if (previousBurrowGuesses != null && event.keyCode == Keyboard.KEY_NUMPAD8) {
+            val oldGuess = previousBurrowGuesses!!.minByOrNull { it.distanceToPlayer() }
+            if (oldGuess != null) previousBurrowGuesses!!.remove(oldGuess)
+        }
         if (!config.burrowNearestWarp) return
-
         if (event.keyCode != config.keyBindWarp) return
         if (Minecraft.getMinecraft().currentScreen != null) return
 
