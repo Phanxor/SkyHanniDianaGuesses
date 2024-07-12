@@ -169,7 +169,7 @@ object GriffinBurrowHelper {
     fun onBurrowGuess(event: BurrowGuessEvent) {
         EntityMovementData.addToTrack(Minecraft.getMinecraft().thePlayer)
         guessLocation?.let {
-            if (lastGuessTime.passedSince() >= 2.seconds && (inBurrowChain == false || storeNextGuess == true)) { // If not in a chain, the guess could point to a different burrow.
+            if (storeNextGuess || lastGuessTime.passedSince() >= 2.seconds && !inBurrowChain) { // If not in a chain, the guess could point to a different burrow.
                 val guessBlock = findBlock(it)
                 //if (!previousBurrowGuesses?.any { it == guessBlock }) {
                 if (previousBurrowGuesses != null && !previousBurrowGuesses!!.contains(guessBlock)) {
